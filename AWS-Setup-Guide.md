@@ -108,7 +108,7 @@ Once connected to your EC2 instance:
 
 ```bash
 # Download the setup script
-curl -o setup.sh https://raw.githubusercontent.com/your-repo/setup.sh
+curl -o setup.sh https://raw.githubusercontent.com/luan-phamhuu/self-host-n8n/setup.sh
 chmod +x setup.sh
 ```
 

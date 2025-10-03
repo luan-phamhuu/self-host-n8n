@@ -61,53 +61,34 @@ sudo usermod -aG docker $USER
 
 # Create n8n directory
 print_status "Creating n8n directory structure..."
-mkdir -p ~/n8n/{nginx/ssl,backups}
-cd ~/n8n
-
-# Generate encryption key
-print_status "Generating encryption key..."
-ENCRYPTION_KEY=$(openssl rand -hex 32)
-echo "Generated encryption key: $ENCRYPTION_KEY"
-
-# Generate JWT secret
-JWT_SECRET=$(openssl rand -base64 32)
-echo "Generated JWT secret: $JWT_SECRET"
-
-# Generate a secure database password
-DB_PASSWORD=$(openssl rand -base64 32)
-echo "Generated database password: $DB_PASSWORD"
+mkdir -p ~/n8n-compose/local-files
+cd ~/n8n-compose
 
 # Create .env file
 print_status "Creating environment configuration..."
 cat > .env << EOF
-# Database Configuration
-DB_PASSWORD=$DB_PASSWORD
+# DOMAIN_NAME and SUBDOMAIN together determine where n8n will be reachable from
+# The top level domain to serve from
+DOMAIN_NAME=your-domain.com
 
-# n8n Configuration
-N8N_HOST=ec2-54-254-253-15.ap-southeast-1.compute.amazonaws.com
-N8N_PORT=5678
-N8N_PROTOCOL=http
+# The subdomain to serve from
+SUBDOMAIN=n8n
 
-# Security
-N8N_ENCRYPTION_KEY=$ENCRYPTION_KEY
-JWT_SECRET=$JWT_SECRET
+# The above example serve n8n at: https://n8n.your-domain.com
 
-# Email Configuration (Optional)
-N8N_EMAIL_MODE='smtp'
-N8N_SMTP_HOST=localhost
-N8N_SMTP_PORT=587
-N8N_SMTP_USER=
-N8N_SMTP_PASS=
+# Optional timezone to set which gets used by Cron and other scheduling nodes
+GENERIC_TIMEZONE=UTC
 
-# Monitoring
-N8N_PROMETHEUS=false
+# The email address to use for the TLS/SSL certificate creation
+SSL_EMAIL=your-email@gmail.com
 EOF
 
 print_status "Setup completed successfully!"
-print_warning "Important:"
-echo "1. Copy docker-compose.yml to ~/n8n/"
-echo "2. Update the .env file with your domain name"
+print_warning "Important next steps:"
+echo "1. Update the .env file with your actual domain name"
+echo "2. Update the .env file with your email for SSL certificates"
 echo "3. Restart your shell session: source ~/.bashrc"
-echo "4. Run: cd ~/n8n && docker-compose up -d"
-
-print_status "Your n8n will be available at: http://$(curl -s ifconfig.me):80"
+echo "4. Run: cd ~/n8n-compose && docker compose up -d"
+echo "5. Set up DNS A record pointing your domain to $(curl -s ifconfig.me)"
+echo ""
+print_status "Your n8n will be available at: https://n8n.your-domain.com (after DNS setup)"
