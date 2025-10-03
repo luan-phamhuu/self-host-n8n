@@ -1,0 +1,91 @@
+version: '3.8'
+
+services:
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: n8n
+    restart: unless-stopped
+    ports:
+      - "80:5678"
+      - "443:5678"  # For SSL later
+    environment:
+      # Basic Configuration
+      - GENERIC_TIMEZONE=UTC
+      - TZ=UTC
+      
+      # Database Configuration
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=n8n
+      - DB_POSTGRESDB_USER=n8n
+      - DB_POSTGRESDB_PASSWORD=${DB_PASSWORD}
+      
+      # Web Configuration
+      - WEBHOOK_URL=http://localhost/
+      - PAGE_TIMEOUT=0
+      
+      # Execution Configuration
+      - EXECUTIONS_TIMEOUT=0
+      - EXECUTIONS_TIMEOUT_MAX=3600
+      
+      # Security (Change these!)
+      - N8N_SECURE_COOKIE=false
+      - WEBHOOK_TUNNEL_URL=
+      
+      # Editor Configuration
+      - N8N_USER_MANAGEMENT_JWT_DURATION_HOURS=168
+      
+      # Log Level
+      - N8N_LOG_LEVEL=info
+      
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - /tmp:/tmp
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - n8n_network
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: n8n_postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=n8n
+      - POSTGRES_USER=n8n
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U n8n -d n8n"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - n8n_network
+
+  # Optional: Nginx reverse proxy for SSL
+  nginx:
+    image: nginx:alpine
+    container_name: n8n_nginx
+    restart: unless-stopped
+    ports:
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - n8n
+    networks:
+      - n8n_network
+
+volumes:
+  n8n_data:
+  postgres_data:
+
+networks:
+  n8n_network:
+    driver: bridge
